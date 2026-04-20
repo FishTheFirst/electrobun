@@ -12,6 +12,11 @@ import { WGPUView } from "./WGPUView";
 const buildConfig = await BuildConfig.get();
 
 export type WindowOptionsType<T = undefined> = {
+	trafficLightOffset?: {
+		x: number;
+		y: number;
+	};
+	activate?: boolean;
 	title: string;
 	frame: {
 		x: number;
@@ -123,6 +128,7 @@ export class BrowserWindow<T extends RPCWithTransport = RPCWithTransport> {
 	transparent: boolean = false;
 	passthrough: boolean = false;
 	hidden: boolean = false;
+	trafficLightOffset: { x: number; y: number } = { x: 0, y: 0 };
 	navigationRules: string | null = null;
 	// Sandbox mode disables RPC and only allows event emission (for untrusted content)
 	sandbox: boolean = false;
@@ -153,6 +159,10 @@ export class BrowserWindow<T extends RPCWithTransport = RPCWithTransport> {
 		this.transparent = options.transparent ?? false;
 		this.passthrough = options.passthrough ?? false;
 		this.hidden = options.hidden ?? false;
+		this.trafficLightOffset = {
+			x: options.trafficLightOffset?.x ?? 0,
+			y: options.trafficLightOffset?.y ?? 0,
+		};
 		this.navigationRules = options.navigationRules || null;
 		this.sandbox = options.sandbox ?? false;
 
@@ -165,6 +175,7 @@ export class BrowserWindow<T extends RPCWithTransport = RPCWithTransport> {
 		titleBarStyle,
 		transparent,
 		hidden,
+		activate,
 	}: Partial<WindowOptionsType<T>>) {
 		this.ptr = ffi.request.createWindow({
 			id: this.id,
@@ -208,6 +219,8 @@ export class BrowserWindow<T extends RPCWithTransport = RPCWithTransport> {
 			titleBarStyle: titleBarStyle || "default",
 			transparent: transparent ?? false,
 			hidden: hidden ?? false,
+			activate: activate ?? true,
+			trafficLightOffset: this.trafficLightOffset,
 		}) as Pointer;
 
 		BrowserWindowMap[this.id] = this;
@@ -263,12 +276,27 @@ export class BrowserWindow<T extends RPCWithTransport = RPCWithTransport> {
 		return ffi.request.closeWindow({ winId: this.id });
 	}
 
+	activate() {
+		return ffi.request.activateWindow({ winId: this.id });
+	}
+
 	focus() {
-		return ffi.request.focusWindow({ winId: this.id });
+		console.log(
+			"[electrobun] BrowserWindow.focus() is deprecated. Use window.activate() instead.",
+		);
+		return this.activate();
 	}
 
 	show() {
-		return ffi.request.focusWindow({ winId: this.id });
+		return ffi.request.showWindow({ winId: this.id, activate: true });
+	}
+
+	showInactive() {
+		return ffi.request.showWindow({ winId: this.id, activate: false });
+	}
+
+	hide() {
+		return ffi.request.hideWindow({ winId: this.id });
 	}
 
 	minimize() {
@@ -323,6 +351,10 @@ export class BrowserWindow<T extends RPCWithTransport = RPCWithTransport> {
 		this.frame.x = x;
 		this.frame.y = y;
 		return ffi.request.setWindowPosition({ winId: this.id, x, y });
+	}
+
+	setWindowButtonPosition(x: number, y: number) {
+		return ffi.request.setWindowButtonPosition({ winId: this.id, x, y });
 	}
 
 	setSize(width: number, height: number) {
