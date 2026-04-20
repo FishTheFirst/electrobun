@@ -2091,10 +2091,14 @@ async function buildCli() {
 	// await $`bun build src/cli/index.ts --compile --outfile src/cli/build/electrobun`;
 
 	const compileTarget =
-		process.platform === "win32" ? "--target=bun-windows-x64-baseline" : "";
-
+		process.platform === "win32" ? " --target=bun-windows-x64-baseline " : "";
+	console.log("bun runtime path:", PATH.bun.RUNTIME);
+	console.log("Compile target:", compileTarget);
 	// Use vendored Bun for building CLI to ensure consistency with CI and proper code signing
-	await $`BUN_INSTALL_CACHE_DIR=/tmp/bun-cache ${PATH.bun.RUNTIME} build src/cli/index.ts --compile ${compileTarget} --outfile src/cli/build/electrobun`;
+	if(compileTarget)
+		await $`${PATH.bun.RUNTIME} build src/cli/index.ts --compile ${compileTarget} --outfile src/cli/build/electrobun`;
+	else
+		await $`${PATH.bun.RUNTIME} build src/cli/index.ts --compile --outfile src/cli/build/electrobun`;
 }
 
 async function buildPreload() {
